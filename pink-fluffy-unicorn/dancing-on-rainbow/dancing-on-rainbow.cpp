@@ -18,6 +18,9 @@ enum ConfidenceLevel
 
 class Document
 {
+private:
+	vector<string> automaticDisposals;
+	
 public:
 	string name;
 	string author;
@@ -28,6 +31,21 @@ public:
 		this->name = name;
 		this->author = author;
 		this->confidenceLevel = confidenceLevel;
+	}
+	void AddAutomaticDisposal(string user)
+	{
+		automaticDisposals.push_back(user);
+	}
+	bool IsAutomaticallyDisposableFor(string user)
+	{
+		for (vector<string>::size_type i = 0; i != automaticDisposals.size(); i++)
+		{
+			if (automaticDisposals[i].compare(user) == 0)
+			{
+				return true;
+			}
+			return false;
+		}
 	}
 	~Document(){};
 };
@@ -137,6 +155,14 @@ public:
 			cout << copies[i].name << "\t(by " << copies[i].author << ")" << endl;
 		}
 	}
+	void GetAutomaticDisposals()
+	{
+		for (vector<Document>::size_type i = 0; i != DocumentManager::Instance().documents.size(); i++)
+		{
+			if (DocumentManager::Instance().documents[i].IsAutomaticallyDisposableFor(this->username))
+				this->RequestCopy(&DocumentManager::Instance().documents[i]);
+		}
+	}
 };
 
 void PrintUnderline()
@@ -152,7 +178,7 @@ int main(int argc, _TCHAR* argv[])
 {	
 	string title;
 
-	Document *doc = new Document("Alicja", "Erwin Koczy", PUBLIC);
+	// Document *doc = new Document("Alicja", "Erwin Koczy", PUBLIC);
 	/*DocumentManager::Instance().AddDocument("Alicja", "Erwin Koczy", PUBLIC);
 	DocumentManager::Instance().ListDocuments();
 */
@@ -168,7 +194,10 @@ int main(int argc, _TCHAR* argv[])
 	system("PAUSE");*/
 
 	DocumentManager::Instance().AddDocument("Alicja", "Erwin Korzy", PUBLIC);
+	DocumentManager::Instance().GetDocument("Alicja").AddAutomaticDisposal("Erwin");
 	DocumentManager::Instance().AddDocument("Erwinia", "Alojz Korzy", STRICTLY_CONFIDENTIAL);
+
+	u->GetAutomaticDisposals();
 
 	char control = '!';
 	while (control != 'q')
