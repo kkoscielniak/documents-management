@@ -16,10 +16,23 @@ enum ConfidenceLevel
 	STRICTLY_CONFIDENTIAL
 };
 
+enum AccessType
+{
+	AUTOMATIC_DISPOSAL,
+	BY_REQUEST
+};
+
+struct AccessInfo
+{
+	string user;
+	AccessType type;
+};
+
 class Document
 {
 private:
 	vector<string> automaticDisposals;
+	vector<AccessInfo> accessingUsers;
 	
 public:
 	string name;
@@ -38,13 +51,34 @@ public:
 	}
 	bool IsAutomaticallyDisposableFor(string user)
 	{
+		cout << "Erwin"; system("PAUSE");
 		for (vector<string>::size_type i = 0; i != automaticDisposals.size(); i++)
 		{
 			if (automaticDisposals[i].compare(user) == 0)
 			{
+				cout << this->name << "Disposable for " << user;
+				system("PAUSE");
 				return true;
 			}
 			return false;
+		}
+	}
+	void AddAccessingUser(string username, AccessType type)
+	{
+		AccessInfo info;
+		info.user = username;
+		info.type = type;
+		this->accessingUsers.push_back(info);
+	}
+	void ListAccessingUsers()
+	{
+		for (vector<AccessInfo>::size_type i = 0; i != accessingUsers.size(); i++)
+		{
+			cout << accessingUsers[i].user;
+			if (accessingUsers[i].type == AUTOMATIC_DISPOSAL)
+				cout << " (automatically)." << endl;
+			else
+				cout << " (by request)." << endl;
 		}
 	}
 	~Document(){};
@@ -68,9 +102,7 @@ public:
 	void AddDocument(string name, string author, ConfidenceLevel level)
 	{
 		Document *doc = new Document(name, author, level);
-		cout << doc->name;
 		documents.push_back(*doc);
-		ListDocuments();
 	}
 	void ListDocuments()
 	{
@@ -102,17 +134,24 @@ public:
 
 class User
 {
+private:
+	bool isAdmin;
 public:
 	string username;
 	string password;
 	ConfidenceLevel permissions;
 	vector <DocumentCopy> copies;
 
-	User(string username, string password, ConfidenceLevel level)
+	User(string username, string password, ConfidenceLevel level, bool isAdmin)
 	{
 		this->username = username;
 		this->password = password;
 		this->permissions = level;
+		this->isAdmin = isAdmin;
+	}
+	bool IsAdmin()
+	{
+		return this->isAdmin;
 	}
 
 	bool RequestCopy(Document *doc)
@@ -121,6 +160,7 @@ public:
 		if (this->permissions >= copy->confidenceLevel)
 		{
 			copies.push_back(copy);
+			doc->AddAccessingUser(this->username, BY_REQUEST);
 			return true;
 		}
 		else
@@ -136,6 +176,21 @@ public:
 		{
 			if (copies[i].name.compare(title) == 0)
 			{
+				// delete &copies[i];
+				copies.erase(copies.begin() + i);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool PassCopy(string title, string username)
+	{
+		for (vector<DocumentCopy>::size_type i = 0; i != copies.size(); i++)
+		{
+			if (copies[i].name.compare(title) == 0)
+			{
+				DocumentCopy *tmp = &copies[i];
 				copies.erase(copies.begin() + i);
 				return true;
 			}
@@ -160,7 +215,12 @@ public:
 		for (vector<Document>::size_type i = 0; i != DocumentManager::Instance().documents.size(); i++)
 		{
 			if (DocumentManager::Instance().documents[i].IsAutomaticallyDisposableFor(this->username))
-				this->RequestCopy(&DocumentManager::Instance().documents[i]);
+			{
+				if (this->RequestCopy(&DocumentManager::Instance().documents[i]))
+				{
+					DocumentManager::Instance().documents[i].AddAccessingUser(this->username, AUTOMATIC_DISPOSAL);
+				}					
+			}
 		}
 	}
 };
@@ -174,30 +234,48 @@ void PrintUnderline()
 	}
 	cout << endl;
 }
+
+class Log
+{
+private:
+	Log(){};
+	Log(Log const&);
+	void operator=(Log const&);
+	~Log(){};
+public:
+	vector<string> logs;
+
+	static Log& Instance()
+	{
+		static Log instance;
+		return instance;
+	}
+	void AddToLog(string username, string document)
+	{
+		string tmp;
+		tmp = username + " tries to access " + document + " @ [datetime]";
+		logs.push_back(tmp);
+	}
+	void ListLogs()
+	{
+		for (vector<string>::size_type i = 0; i != logs.size(); i++)
+		{
+			cout << logs[i] << endl;
+		}
+	}
+};
+
 int main(int argc, _TCHAR* argv[])
 {	
 	string title;
 
-	// Document *doc = new Document("Alicja", "Erwin Koczy", PUBLIC);
-	/*DocumentManager::Instance().AddDocument("Alicja", "Erwin Koczy", PUBLIC);
-	DocumentManager::Instance().ListDocuments();
-*/
-	User *u = new User("Erwin", "Korzy", CONFIDENTIAL);
-/*
-	u->RequestCopy(doc);
-	Document *doc2 = new Document("Erwinia", "Alojz", PUBLIC);
-	u->RequestCopy(doc2);
-	u->ListCopies();
-	u->ReturnCopy("Erwinia");
-	u->ListCopies();
-
-	system("PAUSE");*/
+	User *u = new User("Erwin", "Korzy", CONFIDENTIAL, true);
 
 	DocumentManager::Instance().AddDocument("Alicja", "Erwin Korzy", PUBLIC);
-	DocumentManager::Instance().GetDocument("Alicja").AddAutomaticDisposal("Erwin");
+	//DocumentManager::Instance().GetDocument("Alicja").AddAutomaticDisposal("Erwin");
 	DocumentManager::Instance().AddDocument("Erwinia", "Alojz Korzy", STRICTLY_CONFIDENTIAL);
 
-	u->GetAutomaticDisposals();
+	//u->GetAutomaticDisposals();
 
 	char control = '!';
 	while (control != 'q')
@@ -208,8 +286,17 @@ int main(int argc, _TCHAR* argv[])
 		cout << "1. Request a copy of document." << endl;
 		cout << "2. List the copies of document." << endl;
 		cout << "3. Return the copy of document." << endl;
+		cout << "4. Pass the copy further." << endl;
 
-		cin >> control;
+		
+		if (u->IsAdmin())
+		{
+			cout << endl;
+			cout << "5. Document information." << endl;
+		}
+		
+		cout << "Option: ";	cin >> control;
+
 
 		switch (control)
 		{
@@ -226,7 +313,8 @@ int main(int argc, _TCHAR* argv[])
 			}
 			else
 			{
-				cout << "Couldn't request a copy of document." << endl;
+				cout << "This incident will be reported." << endl;
+				Log::Instance().AddToLog(u->username, title);
 			}
 			system("PAUSE");
 			break;
@@ -257,17 +345,35 @@ int main(int argc, _TCHAR* argv[])
 			}
 			system("PAUSE");
 			break;
-		case '5':
-			system("cls");
+		case '4':
+			system("CLS");
 
+			break;
+		case '5':
+			system("CLS");
+			cout << "DOCUMENT INFO" << endl;
+			PrintUnderline();
+			DocumentManager::Instance().ListDocuments();
+			cout << endl << "Which document? "; cin >> title;
+			system("CLS");
+			cout << "ACCESSING USERS" << endl;
+			PrintUnderline();
+			DocumentManager::Instance().GetDocument(title).ListAccessingUsers();
+			system("PAUSE");
+			break;
+		case '6':
+			system("cls");
+			cout << "SHOW ERROR LOG" << endl;
+			PrintUnderline();
+			Log::Instance().ListLogs();
 			system("PAUSE");
 			break;
 		default:
 			break;
 		}
 	}
-	delete u;
 
+	delete u;
 	return 0;
 }
 
