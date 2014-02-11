@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <istream>
 #include <vector>
 
 using namespace std; 
@@ -263,11 +264,61 @@ public:
 			cout << logs[i] << endl;
 		}
 	}
+	void Serialize()
+	{
+		ofstream file;
+		
+		try
+		{
+			file.open("Log.txt");
+			if (!file)
+				throw 1;
+
+			for (vector<string>::size_type i = 0; i != logs.size(); i++)
+			{
+				file << logs[i] << endl;
+			};
+			file.close();
+		}
+		catch (int error)
+		{
+			if (error == 1)
+			{
+				cout << "Couldn't save logs." << endl;
+				system("PAUSE");
+			}
+		}
+	}
+	void Deserialize()
+	{
+		ifstream file;
+		try
+		{
+			file.open("Log.txt");
+			if (!file)
+				throw 1;
+			
+			string line;
+			while (getline(file, line))
+				logs.push_back(line);
+
+		}
+		catch (int error)
+		{
+			if (error == 1)
+			{
+				cout << "Couldn't deserialize logs. ";
+				system("PAUSE");
+			}
+		}
+	}
 };
 
 int main(int argc, _TCHAR* argv[])
 {	
 	string title;
+
+	Log::Instance().Deserialize();
 
 	User *u = new User("Erwin", "Korzy", CONFIDENTIAL, true);
 
@@ -372,6 +423,8 @@ int main(int argc, _TCHAR* argv[])
 			break;
 		}
 	}
+
+	Log::Instance().Serialize();
 
 	delete u;
 	return 0;
