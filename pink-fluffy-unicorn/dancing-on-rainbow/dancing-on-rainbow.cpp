@@ -1,5 +1,8 @@
 // dancing-on-rainbow.cpp : Defines the entry point for the console application.
 //
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #include "stdafx.h"
 #include <string>
@@ -33,7 +36,7 @@ struct AccessInfo
 class Document
 {
 private:
-	vector<string> automaticDisposals;
+	// vector<string> automaticDisposals;
 	vector<AccessInfo> accessingUsers;
 	
 public:
@@ -47,11 +50,12 @@ public:
 		this->author = author;
 		this->confidenceLevel = confidenceLevel;
 	}
-	void AddAutomaticDisposal(string user)
+	~Document(){};
+	/*void AddAutomaticDisposal(string user)
 	{
 		automaticDisposals.push_back(user);
-	}
-	bool IsAutomaticallyDisposableFor(string user)
+	}*/
+	/*bool IsAutomaticallyDisposableFor(string user)
 	{
 		cout << "Erwin"; system("PAUSE");
 		for (vector<string>::size_type i = 0; i != automaticDisposals.size(); i++)
@@ -64,7 +68,7 @@ public:
 			}
 			return false;
 		}
-	}
+	}*/
 	void AddAccessingUser(string username, AccessType type)
 	{
 		AccessInfo info;
@@ -83,7 +87,6 @@ public:
 				cout << " (by request)." << endl;
 		}
 	}
-	~Document(){};
 };
 
 class DocumentManager
@@ -123,6 +126,55 @@ public:
 			}
 		}
 	}
+	void SerializeDocuments()
+	{
+		ofstream file;
+		try
+		{
+			file.open("Documents.txt");
+			if (!file)
+				throw 1;
+
+			for (vector<Document>::size_type i = 0; i != documents.size(); i++)
+			{
+				string tmp = documents[i].name;
+				file << documents[i].name << endl << documents[i].author << endl << documents[i].confidenceLevel << endl;
+			};
+			file.close();
+		}
+		catch (int error)
+		{
+			if (error == 1)
+			{
+				cout << "Couldn't serialize documents." << endl;
+				system("PAUSE");
+			}
+		}
+	}
+	void DeserializeDocuments()
+	{
+			ifstream file;
+			try
+			{
+				file.open("Documents.txt");
+				if (!file)
+					throw 1;
+
+				string line;
+				int n = 0;	// count of lines
+				
+				system("PAUSE");
+				file.close();
+			}
+			catch (int error)
+			{
+				if (error == 1)
+				{
+					cout << "Couldn't deserialize log. ";
+					system("PAUSE");
+				}
+			}
+		}
 };
 
 class DocumentCopy : public Document
@@ -167,7 +219,7 @@ public:
 		}
 		else
 		{
-			cout << "You do not have required permissions. ";
+			cout << "You do not have required permissions.";
 			return false;
 		}
 	}
@@ -212,7 +264,7 @@ public:
 			cout << copies[i].name << "\t(by " << copies[i].author << ")" << endl;
 		}
 	}
-	void GetAutomaticDisposals()
+	/*void GetAutomaticDisposals()
 	{
 		for (vector<Document>::size_type i = 0; i != DocumentManager::Instance().documents.size(); i++)
 		{
@@ -224,7 +276,7 @@ public:
 				}					
 			}
 		}
-	}
+	}*/
 };
 
 class Log
@@ -250,7 +302,7 @@ public:
 		struct tm * timeinfo;
 		time(&rawtime);
 		timeinfo = localtime(&rawtime);
-		strftime(buffer, 80, "%d - %m - %Y %I:%M", timeinfo);
+		strftime(buffer, 80, "%d.%m.%Y %I:%M", timeinfo);
 		string str(buffer);
 		tmp = username + " tries to access " + document + " @ " + str;
 		logs.push_back(tmp);
@@ -261,6 +313,10 @@ public:
 		{
 			cout << logs[i] << endl;
 		}
+	}
+	void FlushLogs()
+	{
+		this->logs.clear();
 	}
 	void Serialize()
 	{
@@ -326,12 +382,13 @@ int main(int argc, _TCHAR* argv[])
 {	
 	string title;
 
+	DocumentManager::Instance().DeserializeDocuments();
 	Log::Instance().Deserialize();
 
 	User *u = new User("Erwin", "Korzy", CONFIDENTIAL, true);
 
 	DocumentManager::Instance().AddDocument("Alicja", "Erwin Korzy", PUBLIC);
-	//DocumentManager::Instance().GetDocument("Alicja").AddAutomaticDisposal("Erwin");
+	// DocumentManager::Instance().GetDocument("Alicja").AddAutomaticDisposal("Erwin");
 	DocumentManager::Instance().AddDocument("Erwinia", "Alojz Korzy", STRICTLY_CONFIDENTIAL);
 
 	//u->GetAutomaticDisposals();
@@ -352,6 +409,7 @@ int main(int argc, _TCHAR* argv[])
 		{
 			cout << endl;
 			cout << "5. Document information." << endl;
+			cout << "6. Error log" << endl;
 		}
 		
 		cout << "Option: ";	cin >> control;
@@ -413,7 +471,8 @@ int main(int argc, _TCHAR* argv[])
 			cout << "DOCUMENT INFO" << endl;
 			PrintUnderline();
 			DocumentManager::Instance().ListDocuments();
-			cout << endl << "Which document? "; cin >> title;
+			cout << endl << "Which document? "; 
+			cin >> title;
 			system("CLS");
 			cout << "ACCESSING USERS" << endl;
 			PrintUnderline();
@@ -422,7 +481,7 @@ int main(int argc, _TCHAR* argv[])
 			break;
 		case '6':
 			system("cls");
-			cout << "SHOW ERROR LOG" << endl;
+			cout << "ERROR LOG" << endl;
 			PrintUnderline();
 			Log::Instance().ListLogs();
 			system("PAUSE");
@@ -433,6 +492,7 @@ int main(int argc, _TCHAR* argv[])
 	}
 
 	Log::Instance().Serialize();
+	DocumentManager::Instance().SerializeDocuments();
 
 	delete u;
 	return 0;
