@@ -230,21 +230,6 @@ public:
 		{
 			if (copies[i].name.compare(title) == 0)
 			{
-				// delete &copies[i];
-				copies.erase(copies.begin() + i);
-				return true;
-			}
-		}
-		return false;
-	}
-
-	bool PassCopy(string title, string username)
-	{
-		for (vector<DocumentCopy>::size_type i = 0; i != copies.size(); i++)
-		{
-			if (copies[i].name.compare(title) == 0)
-			{
-				DocumentCopy *tmp = &copies[i];
 				copies.erase(copies.begin() + i);
 				return true;
 			}
@@ -277,6 +262,70 @@ public:
 			}
 		}
 	}*/
+};
+
+class Users
+{
+private:
+	Users(){};
+	Users(const Users&);
+	void operator=(const Users&);
+	~Users(){};
+	vector<User> users;
+public:
+	static Users & Instance()
+	{
+		static Users instance;
+		return instance;
+	}
+	void AddUser(string username, string passwd, ConfidenceLevel lvl, bool isAdmin)
+	{
+		User *user = new User(username, passwd, lvl, isAdmin);
+		users.push_back(*user);
+	}
+	int UsersCount()
+	{
+		return users.size();
+	}
+	User& GetUser(string username)
+	{
+		for (vector<User>::size_type i = 0; i != UsersCount(); i++)
+		{
+			if (users[i].username == username)
+			{
+				return users[i];
+			}
+		}
+	}
+	bool PassCopy(string from, string to, string title)
+	{
+		// DocumentCopy tmp;
+
+		for (vector<User>::size_type i = 0; i != UsersCount(); i++)
+		{
+			if (this->users[i].username == from)
+			{
+				for (vector<DocumentCopy>::size_type j = 0; j != users[i].copies.size(); j++)
+				{
+					if (users[i].copies[j].name == title)
+					{
+						//tmp = users[i].copies[j];
+						users[i].ReturnCopy(title);
+						break;
+					}
+				}
+			}
+		}
+		for (vector<User>::size_type i = 0; i != UsersCount(); i++)
+		{
+			if (this->users[i].username == to)
+			{
+				users[i].RequestCopy(&DocumentManager::Instance().GetDocument(title));
+				return true;
+			}
+		}
+		return false;
+	}
 };
 
 class Log
@@ -381,11 +430,15 @@ void PrintUnderline()
 int main(int argc, _TCHAR* argv[])
 {	
 	string title;
+	User *u = NULL;
 
-	DocumentManager::Instance().DeserializeDocuments();
+	Users::Instance().AddUser("Erwin", "Koczy", CONFIDENTIAL, false);
+	Users::Instance().AddUser("Admin", "admin", STRICTLY_CONFIDENTIAL, true);
+
+	// DocumentManager::Instance().DeserializeDocuments();
 	Log::Instance().Deserialize();
 
-	User *u = new User("Erwin", "Korzy", CONFIDENTIAL, true);
+	// User *u = new User("Erwin", "Korzy", CONFIDENTIAL, true);
 
 	DocumentManager::Instance().AddDocument("Alicja", "Erwin Korzy", PUBLIC);
 	// DocumentManager::Instance().GetDocument("Alicja").AddAutomaticDisposal("Erwin");
@@ -393,108 +446,159 @@ int main(int argc, _TCHAR* argv[])
 
 	//u->GetAutomaticDisposals();
 
+	
+
+	
+	/* MAIN WINDOW */
 	char control = '!';
+	bool loggedIn = false;
 	while (control != 'q')
 	{
-		system("CLS");
-		
-		cout << "Select an option (q to quit)." << endl;
-		cout << "1. Request a copy of document." << endl;
-		cout << "2. List the copies of document." << endl;
-		cout << "3. Return the copy of document." << endl;
-		cout << "4. Pass the copy further." << endl;
-
-		
-		if (u->IsAdmin())
+		if (!loggedIn)
 		{
-			cout << endl;
-			cout << "5. Document information." << endl;
-			cout << "6. Error log" << endl;
+			/* LOGIN 'WiNDOW' */
+			string login;
+			string password;
+
+			cout << "DOCUMENT CYCLE MANAGER" << endl;
+			PrintUnderline();
+			cout << "Login:\t"; cin >> login;
+
+			if (Users::Instance().GetUser(login).username == login)
+			{
+				cout << "Password:\t"; cin >> password;
+				u = &Users::Instance().GetUser(login);
+				if (u->password != password)
+				{
+					cout << "Password does not match. ";
+					system("PAUSE");
+					return -1;
+				}
+				loggedIn = true;
+			}
+			else
+			{
+				cout << "Couldn't login. ";
+				system("PAUSE");
+				return -1;
+			}
 		}
-		
-		cout << "Option: ";	cin >> control;
-
-
-		switch (control)
+		else
 		{
-		case '1':
 			system("CLS");
-			cout << "REQUEST A COPY" << endl;
+			cout << "Hello " << u->username << endl;
 			PrintUnderline();
-			DocumentManager::Instance().ListDocuments();
-			cout << endl << "Title: ";
-			cin >> title;
-			if (u->RequestCopy(&DocumentManager::Instance().GetDocument(title)))
-			{
-				cout << "Copy of document granted." << endl;
-			}
-			else
-			{
-				cout << "This incident will be reported." << endl;
-				Log::Instance().AddToLog(u->username, title);
-			}
-			system("PAUSE");
-			break;
-		case '2':
-			system("CLS");
-			cout << "LIST OF COPIES" << endl;
-			PrintUnderline();
-			if (u->CopiesCount() > 0)
-				u->ListCopies();
-			else
-				cout << "You do not have any copies right now." << endl;
-			cout << endl;
-			system("PAUSE");
-			break;
-		case '3':
-			system("CLS");
-			cout << "RETURN A COPY" << endl << endl;
-			u->ListCopies();
-			cout << endl << "Title: ";
-			cin >> title;
-			if (u->ReturnCopy(title))
-			{
-				cout << "Copy returned to archive. " << endl;
-			}
-			else
-			{
-				cout << "Couldn't return the copy to archive." << endl;
-			}
-			system("PAUSE");
-			break;
-		case '4':
-			system("CLS");
 
-			break;
-		case '5':
-			system("CLS");
-			cout << "DOCUMENT INFO" << endl;
-			PrintUnderline();
-			DocumentManager::Instance().ListDocuments();
-			cout << endl << "Which document? "; 
-			cin >> title;
-			system("CLS");
-			cout << "ACCESSING USERS" << endl;
-			PrintUnderline();
-			DocumentManager::Instance().GetDocument(title).ListAccessingUsers();
-			system("PAUSE");
-			break;
-		case '6':
-			system("cls");
-			cout << "ERROR LOG" << endl;
-			PrintUnderline();
-			Log::Instance().ListLogs();
-			system("PAUSE");
-			break;
-		default:
-			break;
+			cout << "Select an option (q to quit)." << endl;
+			cout << "1. Request a copy of document." << endl;
+			cout << "2. List the copies of document." << endl;
+			cout << "3. Return the copy of document." << endl;
+			cout << "4. Pass the copy further." << endl;
+
+
+			if (u->IsAdmin())
+			{
+				cout << endl;
+				cout << "5. Document information." << endl;
+				cout << "6. Error log" << endl;
+			}
+				
+			cout << "0. Log out." << endl;
+
+			cout << "Option: ";	cin >> control;
+
+			string who;
+
+			switch (control)
+			{
+			case '1':
+				system("CLS");
+				cout << "REQUEST A COPY" << endl;
+				PrintUnderline();
+				DocumentManager::Instance().ListDocuments();
+				cout << endl << "Title: ";
+				cin >> title;
+				if (u->RequestCopy(&DocumentManager::Instance().GetDocument(title)))
+				{
+					cout << "Copy of document granted." << endl;
+				}
+				else
+				{
+					cout << "This incident will be reported." << endl;
+					Log::Instance().AddToLog(u->username, title);
+				}
+				system("PAUSE");
+				break;
+			case '2':
+				system("CLS");
+				cout << "LIST OF COPIES" << endl;
+				PrintUnderline();
+				if (u->CopiesCount() > 0)
+					u->ListCopies();
+				else
+					cout << "You do not have any copies right now." << endl;
+				cout << endl;
+				system("PAUSE");
+				break;
+			case '3':
+				system("CLS");
+				cout << "RETURN A COPY" << endl << endl;
+				u->ListCopies();
+				cout << endl << "Title: ";
+				cin >> title;
+				if (u->ReturnCopy(title))
+				{
+					cout << "Copy returned to archive. " << endl;
+				}
+				else
+				{
+					cout << "Couldn't return the copy to archive." << endl;
+				}
+				system("PAUSE");
+				break;
+			case '4':
+				system("CLS");
+				cout << "PASS THE COPY FURTHER" << endl;
+				PrintUnderline();
+				u->ListCopies();
+				cout << "Which one? "; cin >> title;
+				cout << "To who? "; cin >> who;
+				Users::Instance().PassCopy(u->username, who, title);
+				system("PAUSE");
+				break;
+			case '5':
+				system("CLS");
+				cout << "DOCUMENT INFO" << endl;
+				PrintUnderline();
+				DocumentManager::Instance().ListDocuments();
+				cout << endl << "Which document? ";
+				cin >> title;
+				system("CLS");
+				cout << "ACCESSING USERS" << endl;
+				PrintUnderline();
+				DocumentManager::Instance().GetDocument(title).ListAccessingUsers();
+				system("PAUSE");
+				break;
+			case '6':
+				system("cls");
+				cout << "ERROR LOG" << endl;
+				PrintUnderline();
+				Log::Instance().ListLogs();
+				system("PAUSE");
+				break;
+			case '0':
+				loggedIn = false;
+				break;
+			default:
+				break;
+			}
 		}
 	}
 
 	Log::Instance().Serialize();
 	DocumentManager::Instance().SerializeDocuments();
 
-	delete u;
+	// delete u;
 	return 0;
 }
 
