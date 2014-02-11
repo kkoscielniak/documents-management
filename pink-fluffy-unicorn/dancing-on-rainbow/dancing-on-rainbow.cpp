@@ -7,6 +7,7 @@
 #include <fstream>
 #include <istream>
 #include <vector>
+#include <ctime>
 
 using namespace std; 
 
@@ -226,16 +227,6 @@ public:
 	}
 };
 
-void PrintUnderline()
-{
-	string s = "=";
-	for (int i = 0; i < 80; i++)
-	{
-		cout << s;
-	}
-	cout << endl;
-}
-
 class Log
 {
 private:
@@ -253,8 +244,15 @@ public:
 	}
 	void AddToLog(string username, string document)
 	{
+		time_t rawtime;
 		string tmp;
-		tmp = username + " tries to access " + document + " @ [datetime]";
+		char buffer[80];
+		struct tm * timeinfo;
+		time(&rawtime);
+		timeinfo = localtime(&rawtime);
+		strftime(buffer, 80, "%d - %m - %Y %I:%M", timeinfo);
+		string str(buffer);
+		tmp = username + " tries to access " + document + " @ " + str;
 		logs.push_back(tmp);
 	}
 	void ListLogs()
@@ -284,7 +282,7 @@ public:
 		{
 			if (error == 1)
 			{
-				cout << "Couldn't save logs." << endl;
+				cout << "Couldn't serialize log." << endl;
 				system("PAUSE");
 			}
 		}
@@ -307,12 +305,22 @@ public:
 		{
 			if (error == 1)
 			{
-				cout << "Couldn't deserialize logs. ";
+				cout << "Couldn't deserialize log. ";
 				system("PAUSE");
 			}
 		}
 	}
 };
+
+void PrintUnderline()
+{
+	string s = "=";
+	for (int i = 0; i < 80; i++)
+	{
+		cout << s;
+	}
+	cout << endl;
+}
 
 int main(int argc, _TCHAR* argv[])
 {	
