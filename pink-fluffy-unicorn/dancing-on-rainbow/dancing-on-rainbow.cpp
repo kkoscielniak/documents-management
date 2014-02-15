@@ -75,6 +75,7 @@ public:
 		info.user = username;
 		info.type = type;
 		this->accessingUsers.push_back(info);
+		// cout << "Added!" << endl; system("PAUSE");
 	}
 	void ListAccessingUsers()
 	{
@@ -432,28 +433,27 @@ int main(int argc, _TCHAR* argv[])
 	string title;
 	User *u = NULL;
 
-	Users::Instance().AddUser("Erwin", "Koczy", CONFIDENTIAL, false);
-	Users::Instance().AddUser("Admin", "admin", STRICTLY_CONFIDENTIAL, true);
+	Users::Instance().AddUser("Marketing", "zaq12wsx", CONFIDENTIAL, false);
+	Users::Instance().AddUser("Production", "zaq12wsx", PUBLIC, false);
+	Users::Instance().AddUser("Administrator", "root", STRICTLY_CONFIDENTIAL, true);
 
 	// DocumentManager::Instance().DeserializeDocuments();
+	
 	Log::Instance().Deserialize();
 
-	// User *u = new User("Erwin", "Korzy", CONFIDENTIAL, true);
-
-	DocumentManager::Instance().AddDocument("Alicja", "Erwin Korzy", PUBLIC);
+	DocumentManager::Instance().AddDocument("Report01", "Chef of production", CONFIDENTIAL);
 	// DocumentManager::Instance().GetDocument("Alicja").AddAutomaticDisposal("Erwin");
-	DocumentManager::Instance().AddDocument("Erwinia", "Alojz Korzy", STRICTLY_CONFIDENTIAL);
-
+	DocumentManager::Instance().AddDocument("Presentation", "Department of marketing", PUBLIC);
+	DocumentManager::Instance().AddDocument("Documentation", "Chef of production", STRICTLY_CONFIDENTIAL);
+	
 	//u->GetAutomaticDisposals();
 
-	
-
-	
 	/* MAIN WINDOW */
 	char control = '!';
 	bool loggedIn = false;
 	while (control != 'q')
 	{
+		system("CLS");
 		if (!loggedIn)
 		{
 			/* LOGIN 'WiNDOW' */
@@ -485,7 +485,6 @@ int main(int argc, _TCHAR* argv[])
 		}
 		else
 		{
-			system("CLS");
 			cout << "Hello " << u->username << endl;
 			PrintUnderline();
 
@@ -495,12 +494,11 @@ int main(int argc, _TCHAR* argv[])
 			cout << "3. Return the copy of document." << endl;
 			cout << "4. Pass the copy further." << endl;
 
-
 			if (u->IsAdmin())
 			{
 				cout << endl;
 				cout << "5. Document information." << endl;
-				cout << "6. Error log" << endl;
+				cout << "6. Error log." << endl;
 			}
 				
 			cout << "0. Log out." << endl;
@@ -508,6 +506,9 @@ int main(int argc, _TCHAR* argv[])
 			cout << "Option: ";	cin >> control;
 
 			string who;
+			/*bool tmpBool;
+			string tmpString;
+			ConfidenceLevel tmpCF;*/
 
 			switch (control)
 			{
@@ -521,6 +522,7 @@ int main(int argc, _TCHAR* argv[])
 				if (u->RequestCopy(&DocumentManager::Instance().GetDocument(title)))
 				{
 					cout << "Copy of document granted." << endl;
+					DocumentManager::Instance().GetDocument(title).AddAccessingUser(u->username, BY_REQUEST);
 				}
 				else
 				{
@@ -574,9 +576,26 @@ int main(int argc, _TCHAR* argv[])
 				cout << endl << "Which document? ";
 				cin >> title;
 				system("CLS");
-				cout << "ACCESSING USERS" << endl;
+				//cout << "ACCESSING USERS" << endl;
+				cout << title << ": INFORMATION" << endl;
 				PrintUnderline();
-				DocumentManager::Instance().GetDocument(title).ListAccessingUsers();
+				cout << "Title: " << DocumentManager::Instance().GetDocument(title).name << endl
+					<< "Author: " << DocumentManager::Instance().GetDocument(title).author << endl;
+				cout << "Confidence level: ";
+				switch (DocumentManager::Instance().GetDocument(title).confidenceLevel)
+				{
+				case PUBLIC:
+					cout << "Public";
+					break;
+				case CONFIDENTIAL:
+					cout << "Confidential";
+					break;
+				case STRICTLY_CONFIDENTIAL:
+					cout << "Strictly confidential";
+					break;
+				}
+				cout << endl;
+				//DocumentManager::Instance().GetDocument(title).ListAccessingUsers();
 				system("PAUSE");
 				break;
 			case '6':
